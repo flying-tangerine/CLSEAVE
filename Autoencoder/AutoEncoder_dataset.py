@@ -1,12 +1,9 @@
 # encoding: utf-8
-"""
-@author:  Remi Lebret
-@contact: remi@lebret.ch
-"""
 import jsonlines
 import torch
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer, BertConfig, BertModel
+
 
 class AEDataset(Dataset):
     def __init__(
@@ -41,13 +38,13 @@ class AEDataset(Dataset):
             self.samples.append((src_sent, tgt_sent, obj["alignment"]))
 
     def collate_fn(self, batch):
-        max_tgt = max([len(t["input_ids"]) for _, t, _ in batch])
+        max_tgt = max([len(t["input_ids"]) for t, _ in batch])
         tgt_tensor = torch.zeros(len(batch), max_tgt, dtype=torch.long).fill_(
             self.tgt_padding_id
         ).to(self.device)
         tgt_attention_mask = torch.zeros(len(batch), max_tgt, dtype=torch.long).to(self.device)
         tgt_idx = []
-        for i, (_, t, p) in enumerate(batch):
+        for i, (t, p) in enumerate(batch):
             tgt_tensor[i, : len(t["input_ids"])] = torch.tensor(
                 t["input_ids"], dtype=torch.long
             ).to(self.device)
@@ -91,7 +88,7 @@ class AEDataset(Dataset):
             for s, t in align
             if s in src_word_ids and t in tgt_word_ids
         ]
-        return (src_tokens, tgt_tokens, word_pairs)
+        return (tgt_tokens, word_pairs)
 
     @staticmethod
     def create_student_model(student_model_name):

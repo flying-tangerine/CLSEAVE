@@ -12,8 +12,8 @@ def train_model(model, train_dloader, train_dset,
     val_accuracy_history = []
 
     for epoch in range(epochs):
-        train_loss, train_accuracy = train_epoch(model, train_dloader, train_dset, optimizer, loss, device)
-        val_loss, val_accuracy = validate(model, val_dloader, val_dset, loss, device)
+        train_loss, train_accuracy = train_eva(model, train_dloader, train_dset, optimizer, loss, device)
+        val_loss, val_accuracy = validate_eva(model, val_dloader, val_dset, loss, device)
 
         train_loss_history.append(train_loss)
         train_accuracy_history.append(train_accuracy)
@@ -37,13 +37,15 @@ def train_epoch(model, dataloader, dataset, optimizer, loss, device):
     for batch in tqdm(dataloader, desc="Training"):
         optimizer.zero_grad()
         images, texts, labels = batch
-        images = images.to(torch.float32).to(device) # float32 to(torch.float32)
+        images = images.to(torch.float32).to(device) # to(torch.float32)
         texts = texts.to(device)
         labels = labels.to(device)
 
         preds = model(images, texts)
+        print(labels, labels.size())
+        print(preds, preds.size())
         batch_loss = loss(preds, labels)
-        print(batch_loss.item())
+        print(batch_loss.item(), batch_loss.size())
         batch_loss.backward()
         optimizer.step()
         # if device == "cpu":
@@ -53,6 +55,32 @@ def train_epoch(model, dataloader, dataset, optimizer, loss, device):
         #     optimizer.step()
         #     clip.model.convert_weights(model)
 
+        total_loss += batch_loss.item()
+        num_correct += (preds.argmax(1) == labels).sum().item()
+
+    average_loss = total_loss / len(dataloader)
+    accuracy = num_correct / len(dataset)
+
+    return average_loss, accuracy
+
+def train_eva(model, dataloader, dataset, optimizer, loss, device):
+    model.train()
+    total_loss = 0.0
+    num_correct = 0
+
+    for batch in tqdm(dataloader, desc="Training"):
+        optimizer.zero_grad()
+        images, texts, atten_mask, labels = batch
+        images = images.to(torch.float32).to(device) # to(torch.float32)
+        texts = texts.to(device)
+        atten_mask = atten_mask.to(device)
+        labels = labels.to(device)
+
+        preds = model(images, texts, atten_mask)
+        batch_loss = loss(preds, labels)
+        # print(batch_loss.item())
+        batch_loss.backward()
+        optimizer.step()
         total_loss += batch_loss.item()
         num_correct += (preds.argmax(1) == labels).sum().item()
 
@@ -74,6 +102,30 @@ def validate(model, dataloader, dataset, loss, device):
             labels = labels.to(device)
 
             preds = model(images, texts)
+            batch_loss = loss(preds, labels)
+
+            total_loss += batch_loss.item()
+            num_correct += (preds.argmax(1) == labels).sum().item()
+
+    average_loss = total_loss / len(dataloader)
+    accuracy = num_correct / len(dataset)
+
+    return average_loss, accuracy
+
+def validate_eva(model, dataloader, dataset, loss, device):
+    model.eval()
+    total_loss = 0.0
+    num_correct = 0
+
+    with torch.no_grad():
+        for batch in tqdm(dataloader, desc="Validation"):
+            images, texts, atten_mask, labels = batch
+            images = images.to(torch.float32).to(device)
+            texts = texts.to(device)
+            atten_mask = atten_mask.to(device)
+            labels = labels.to(device)
+
+            preds = model(images, texts, atten_mask)
             batch_loss = loss(preds, labels)
 
             total_loss += batch_loss.item()

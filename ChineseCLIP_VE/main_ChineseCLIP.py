@@ -1,14 +1,14 @@
-import clip
+import cn_clip.clip as clip # import clip
 import torch
 import pandas as pd
-from dataset import NLIVEdataset
-from CLIPVEmodel import CLIPVEmodel
-from utils import train_model, EarlyStopper, validate
+from CLIP_VE.dataset import NLIVEdataset
+from ChineseCLIPVEmodel import CLIPVEmodel
+from CLIP_VE.utils import train_model, EarlyStopper, validate
 from sklearn.model_selection import train_test_split
-from transformers import CLIPTextModelWithProjection # CLIPModel
+from transformers import ChineseCLIPTextModel # CLIPTextModelWithProjection, CLIPModel
 
-df = pd.read_json('/Users/ziyixu/SNLI-VE/data/snli_ve_train.jsonl', lines=True)
-df = df[['Flickr30K_ID', 'sentence2', 'gold_label']]
+df = pd.read_json('/Users/ziyixu/SNLI-VE/data/snli_ve_train.jsonl', lines=True) ##
+# df = df[['Flickr30K_ID', 'sentence2', 'gold_label']]
 df.loc[:, "gold_label"] = df["gold_label"].replace({"entailment": 2, "neutral": 1, "contradiction": 0})
 df = df.sample(frac=1).reset_index(drop=True) # !make it full length [:18000]
 
@@ -16,10 +16,10 @@ EPOCHS = 50
 BATCH_SIZE = 64
 LEARNING_RATE = 1e-6
 
-model_name = "openai/clip-vit-base-patch16"
+model_name = "OFA-Sys/chinese-clip-vit-base-patch16" # "openai/clip-vit-base-patch16"
 device = "cuda:0" if torch.cuda.is_available() else "cpu" # If using GPU then use mixed precision training.
-model, preprocess = clip.load("ViT-B/16",device=device,jit=False) #[RN50, ViT-B/16, ViT-L/14], Must set jit=False for training
-textmodel = CLIPTextModelWithProjection.from_pretrained(model_name)
+model, preprocess = clip.load_from_name("ViT-B-16",device=device,download_root='./') #[RN50, ViT-B/16, ViT-L/14], Must set jit=False for training
+textmodel = ChineseCLIPTextModel.from_pretrained(model_name, add_pooling_layer=False)
 
 # for k in model.visual.transformer.parameters():
 #     k.requires_grad=False

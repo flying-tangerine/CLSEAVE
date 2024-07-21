@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from AutoEncoder_dataset import AEDataset
 
+
 class AE(nn.Module):
     def __init__(self):
         super().__init__()

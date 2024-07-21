@@ -1,12 +1,13 @@
 import torch
 import torch.nn as nn
-from collections import OrderedDict
-from transformers import CLIPConfig
+# from collections import OrderedDict
+# from transformers import CLIPConfig
+from transformers import CLIPTextModelWithProjection # CLIPModel
 
 class CLIPVEmodel(nn.Module):
-    def __init__(self, clip, input_dim, hidden_size1, hidden_size2):
+    def __init__(self, model_name, input_dim, hidden_size1, hidden_size2):
         super().__init__()
-        self.clip = clip
+        self.clip = CLIPTextModelWithProjection.from_pretrained(model_name)
         self.input_size = input_dim * 4
         output_size = 3
         
@@ -39,14 +40,11 @@ class CLIPVEmodel(nn.Module):
         output = self.clip(texts, return_dict=True) # output_hidden_states=True, using transformer clip
         text_features = output.text_embeds
         # text_features = self.clip.encode_text(texts) # directly load clip from github
-
-        # pooled_output = text_outputs[1]
-        # pooled_output = self.text_projection(pooled_output)
         
         image_features = image_features.view(image_features.size(0), -1)
         text_features = text_features.view(text_features.size(0), -1)
-        image_features /= image_features.norm(p=2, dim=-1, keepdim=True) # normalization
-        text_features /= text_features.norm(p=2, dim=-1, keepdim=True)
+        image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True) # normalization
+        text_features = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
         image_features = self.dropout(image_features)
         text_features = self.dropout(text_features)
         
